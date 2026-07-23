@@ -1,0 +1,391 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import os
+
+DATA_PATH = "recording.npy"
+
+FS = 30000
+DISPLAY_DURATION = 0.1
+
+# مسیر ذخیره خروجی‌ها
+OUTPUT_DIR = "EDA_Results"
+
+# ساخت فولدر خروجی در صورت وجود نداشتن
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+
+
+signal_data = np.load(DATA_PATH)
+
+
+# نمایش اطلاعات اولیه
+print("\nDataset Information")
+print("-" * 60)
+
+print("Data Type:", signal_data.dtype)
+print("Shape:", signal_data.shape)
+print("Number of Dimensions:", signal_data.ndim)
+
+
+# ============================================================
+# 3. PREPARE SIGNAL
+# ============================================================
+
+# حذف ابعاد اضافی
+signal_data = np.squeeze(signal_data)
+
+print("\nShape after squeeze:", signal_data.shape)
+
+
+# ------------------------------------------------------------
+# اگر داده یک‌بعدی باشد
+# ------------------------------------------------------------
+
+if signal_data.ndim == 1:
+
+    signal = signal_data
+
+    n_samples = len(signal)
+
+    print("\nDataset type: Single-channel signal")
+
+
+
+# تبدیل داده به float
+signal = signal.astype(float)
+
+
+# ============================================================
+# 4. TIME VECTOR
+# ============================================================
+
+# مدت زمان کل سیگنال
+duration_sec = n_samples / FS
+
+# بردار زمان
+time = np.arange(n_samples) / FS
+
+
+# ============================================================
+# 5. BASIC STATISTICS
+# ============================================================
+
+minimum = np.min(signal)
+
+maximum = np.max(signal)
+
+mean_value = np.mean(signal)
+
+std_value = np.std(signal)
+
+median_value = np.median(signal)
+
+rms_value = np.sqrt(np.mean(signal ** 2))
+
+peak_to_peak = maximum - minimum
+
+
+# ============================================================
+# 6. PRINT RESULTS
+# ============================================================
+
+print("\n")
+print("=" * 60)
+print("EXPLORATORY DATA ANALYSIS RESULTS")
+print("=" * 60)
+
+print(f"Number of Samples        : {n_samples:,}")
+
+print(f"Sampling Frequency       : {FS:,} Hz")
+
+print(f"Signal Duration          : {duration_sec:.6f} seconds")
+
+print(f"Signal Duration          : {duration_sec / 60:.4f} minutes")
+
+print(f"Minimum Amplitude        : {minimum:.6f}")
+
+print(f"Maximum Amplitude        : {maximum:.6f}")
+
+print(f"Mean Amplitude           : {mean_value:.6f}")
+
+print(f"Standard Deviation       : {std_value:.6f}")
+
+print(f"Median Amplitude         : {median_value:.6f}")
+
+print(f"RMS Amplitude            : {rms_value:.6f}")
+
+print(f"Peak-to-Peak Amplitude   : {peak_to_peak:.6f}")
+
+print("=" * 60)
+
+
+# ============================================================
+# 7. SAVE STATISTICS
+# ============================================================
+
+results = {
+
+    "Number of Samples": n_samples,
+
+    "Sampling Frequency (Hz)": FS,
+
+    "Duration (seconds)": duration_sec,
+
+    "Duration (minutes)": duration_sec / 60,
+
+    "Minimum Amplitude": minimum,
+
+    "Maximum Amplitude": maximum,
+
+    "Mean Amplitude": mean_value,
+
+    "Standard Deviation": std_value,
+
+    "Median Amplitude": median_value,
+
+    "RMS Amplitude": rms_value,
+
+    "Peak-to-Peak Amplitude": peak_to_peak
+}
+
+
+# تبدیل به DataFrame
+results_df = pd.DataFrame(
+    [results]
+)
+
+
+# ذخیره CSV
+csv_path = os.path.join(
+    OUTPUT_DIR,
+    "signal_statistics.csv"
+)
+
+results_df.to_csv(
+    csv_path,
+    index=False
+)
+
+print("\nStatistics saved to:")
+print(csv_path)
+
+
+# ============================================================
+# 8. PLOT FULL SIGNAL
+# ============================================================
+
+plt.figure(figsize=(14, 5))
+
+plt.plot(
+    time,
+    signal,
+    linewidth=0.5
+)
+
+plt.title(
+    "Raw Extracellular Neural Signal"
+)
+
+plt.xlabel(
+    "Time (seconds)"
+)
+
+plt.ylabel(
+    "Amplitude"
+)
+
+plt.grid(
+    True,
+    alpha=0.3
+)
+
+plt.tight_layout()
+
+
+# ذخیره شکل
+full_signal_path = os.path.join(
+    OUTPUT_DIR,
+    "01_full_raw_signal.png"
+)
+
+plt.savefig(
+    full_signal_path,
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+
+# ============================================================
+# 9. PLOT FIRST PART OF SIGNAL
+# ============================================================
+
+# تعداد نمونه‌هایی که باید نمایش داده شوند
+display_samples = int(
+    DISPLAY_DURATION * FS
+)
+
+# جلوگیری از بیشتر شدن از طول سیگنال
+display_samples = min(
+    display_samples,
+    n_samples
+)
+
+plt.figure(figsize=(14, 5))
+
+plt.plot(
+    time[:display_samples],
+    signal[:display_samples],
+    linewidth=0.8
+)
+
+plt.title(
+    f"Raw Neural Signal - First {DISPLAY_DURATION} Seconds"
+)
+
+plt.xlabel(
+    "Time (seconds)"
+)
+
+plt.ylabel(
+    "Amplitude"
+)
+
+plt.grid(
+    True,
+    alpha=0.3
+)
+
+plt.tight_layout()
+
+
+# ذخیره شکل
+zoom_path = os.path.join(
+    OUTPUT_DIR,
+    "02_raw_signal_zoomed.png"
+)
+
+plt.savefig(
+    zoom_path,
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+
+# ============================================================
+# 10. AMPLITUDE HISTOGRAM
+# ============================================================
+
+plt.figure(figsize=(9, 5))
+
+plt.hist(
+    signal,
+    bins=100
+)
+
+plt.title(
+    "Histogram of Neural Signal Amplitude"
+)
+
+plt.xlabel(
+    "Amplitude"
+)
+
+plt.ylabel(
+    "Number of Samples"
+)
+
+plt.grid(
+    True,
+    alpha=0.3
+)
+
+plt.tight_layout()
+
+
+# ذخیره شکل
+hist_path = os.path.join(
+    OUTPUT_DIR,
+    "03_amplitude_histogram.png"
+)
+
+plt.savefig(
+    hist_path,
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+
+# ============================================================
+# 11. BOXPLOT
+# ============================================================
+
+plt.figure(figsize=(8, 4))
+
+plt.boxplot(
+    signal,
+    vert=False
+)
+
+plt.title(
+    "Boxplot of Neural Signal Amplitude"
+)
+
+plt.xlabel(
+    "Amplitude"
+)
+
+plt.grid(
+    True,
+    alpha=0.3
+)
+
+plt.tight_layout()
+
+
+# ذخیره شکل
+boxplot_path = os.path.join(
+    OUTPUT_DIR,
+    "04_amplitude_boxplot.png"
+)
+
+plt.savefig(
+    boxplot_path,
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+
+# ============================================================
+# 12. FINAL SUMMARY
+# ============================================================
+
+print("\n")
+print("=" * 60)
+print("EDA COMPLETED SUCCESSFULLY")
+print("=" * 60)
+
+print("\nGenerated Files:")
+
+print("1.", full_signal_path)
+
+print("2.", zoom_path)
+
+print("3.", hist_path)
+
+print("4.", boxplot_path)
+
+print("5.", csv_path)
+
+print("\nAll results are saved in:")
+print(OUTPUT_DIR)
+
+print("=" * 60)
